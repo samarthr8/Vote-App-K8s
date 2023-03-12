@@ -1,0 +1,79 @@
+apiVersion: apps/v1
+
+kind: Deployment
+
+metadata:
+  name: redis
+
+spec:
+  selector:
+    matchLabels:
+      app: redis
+  strategy:
+        type: RollingUpdate
+        rollingUpdate:
+           maxSurge: 0
+           maxUnavailable: 100%    
+  replicas: 2
+  template:
+    metadata:
+      name: redis
+      labels:
+        app: redis
+    spec:
+      containers:
+        - name: redis
+          image: redis:alpine
+          livenessProbe:
+            httpGet:
+              path: /
+              port: 80
+            initialDelaySeconds: 10
+            periodSeconds: 5
+          readinessProbe:
+            httpGet:
+              path: /
+              port: 80
+            initialDelaySeconds: 10
+            periodSeconds: 5
+          resources:
+            requests:
+              memory: "500Mi"
+              cpu: .5
+            limits:
+              memory: "1000Mi"
+              cpu: 1
+      tolerations:
+      - key: "demo"
+        operator: "Equal"
+        value: "critical"
+        effect: "NoSchedule"
+      affinity:
+        nodeAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            nodeSelectorTerms:
+            - matchExpressions:
+              - key: demo
+                operator: In
+                values:
+                - critical
+---
+
+apiVersion: v1
+
+kind: Service
+
+metadata:
+  name: redis
+  labels:
+    app: redis
+
+spec:
+  selector:
+    app: redis
+  type: ClusterIP
+  ports:
+  - name: "redis-service"
+    protocol: TCP
+    port: 6379
+    targetPort: 6379

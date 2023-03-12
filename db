@@ -1,0 +1,85 @@
+apiVersion: apps/v1
+
+kind: Deployment
+
+metadata:
+  name: db
+
+spec:
+  selector:
+    matchLabels:
+      app: db
+  strategy:
+        type: RollingUpdate
+        rollingUpdate:
+           maxSurge: 200%
+           maxUnavailable: 0    
+  replicas: 1
+  template:
+    metadata:
+      name: db
+      labels:
+        app: db
+    spec:
+      containers:
+      - image: postgres:9.4
+        name: postgres
+        env:
+        - name: POSTGRES_USER
+          value: postgres
+        - name: POSTGRES_PASSWORD
+          value: postgres
+        livenessProbe:
+            httpGet:
+              path: /
+              port: 80
+            initialDelaySeconds: 10
+            periodSeconds: 5
+          readinessProbe:
+            httpGet:
+              path: /
+              port: 80
+            initialDelaySeconds: 10
+            periodSeconds: 5
+          resources:
+            requests:
+              memory: "500Mi"
+              cpu: .5
+            limits:
+              memory: "1000Mi"
+              cpu: 1
+      tolerations:
+      - key: "demo"
+        operator: "Equal"
+        value: "critical"
+        effect: "NoSchedule"
+      affinity:
+        nodeAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            nodeSelectorTerms:
+            - matchExpressions:
+              - key: demo
+                operator: In
+                values:
+                - critical  
+
+---
+
+apiVersion: v1
+
+kind: Service
+
+metadata:
+  name: db
+  labels:
+    app: db
+
+spec:
+  selector:
+    app: db
+  type: ClusterIP
+  ports:
+  - name: "db-service"
+    protocol: TCP
+    port: 5432
+    targetPort: 5432

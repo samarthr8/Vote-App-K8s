@@ -1,0 +1,60 @@
+apiVersion: apps/v1
+
+kind: Deployment
+
+metadata:
+  name: worker
+
+spec:
+  selector:
+    matchLabels:
+      app: worker
+  strategy:
+        type: RollingUpdate
+        rollingUpdate:
+           maxSurge: 0
+           maxUnavailable: 100%    
+  replicas: 2
+  template:
+    metadata:
+      name: worker
+      labels:
+        app: worker
+    spec:
+      containers:
+      - image: dockersamples/examplevotingapp_worker
+        name: worker
+        livenessProbe:
+            httpGet:
+              path: /
+              port: 80
+            initialDelaySeconds: 10
+            periodSeconds: 5
+          readinessProbe:
+            httpGet:
+              path: /
+              port: 80
+            initialDelaySeconds: 10
+            periodSeconds: 5
+          resources:
+            requests:
+              memory: "500Mi"
+              cpu: .5
+            limits:
+              memory: "1000Mi"
+              cpu: 1
+      tolerations:
+      - key: "demo"
+        operator: "Equal"
+        value: "critical"
+        effect: "NoSchedule"
+      affinity:
+        nodeAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            nodeSelectorTerms:
+            - matchExpressions:
+              - key: demo
+                operator: In
+                values:
+                - critical
+
